@@ -1,0 +1,58 @@
+diff --git a/src/Entity/Offer.php b/src/Entity/Offer.php
+index 1a2b3c4..5d6e7f8 100644
+--- a/src/Entity/Offer.php
++++ b/src/Entity/Offer.php
+@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
+ use JMS\Serializer\Annotation as Serializer;
+
+ #[ORM\Entity(repositoryClass: OfferRepository::class)]
++#[ORM\Table(name: 'offer')]
+ class Offer
+ {
+     #[ORM\Id]
+@@ -22,6 +23,11 @@ class Offer
+     #[Serializer\Groups(['offer:read'])]
+     private string $title;
+
++    #[ORM\Column(type: 'integer')]
++    #[Serializer\Groups(['offer:read'])]
++    private int $stockQuantity = 0;
++
++    #[ORM\Column(type: 'string', length: 3)]
+     private string $currency;
+
+     public function getTitle(): string
+@@ -29,8 +35,16 @@ class Offer
+         return $this->title;
+     }
+
+-    public function reduceStock($amount)
++    public function getStockQuantity(): int
++    {
++        return $this->stockQuantity;
++    }
++
++    public function reduceStock(int $amount): void
+     {
+-        $this->stockQuantity = $this->stockQuantity - $amount;
++        if ($amount < 0) {
++            throw new \InvalidArgumentException('Amount must be non-negative.');
++        }
++        $this->stockQuantity -= $amount;
+     }
+ }
+diff --git a/src/Controller/OfferController.php b/src/Controller/OfferController.php
+index aa11bb2..cc33dd4 100644
+--- a/src/Controller/OfferController.php
++++ b/src/Controller/OfferController.php
+@@ -40,8 +40,9 @@ class OfferController extends AbstractController
+     #[Route('/offers/{id}', methods: ['GET'])]
+     public function show(int $id): JsonResponse
+     {
+-        $offer = $this->offerRepository->find($id);
+-        return $this->json($offer);
++        $offer = $this->offerRepository->find($id)
++            ?? throw $this->createNotFoundException('Offer not found.');
++        return $this->json($offer, context: ['groups' => ['offer:read']]);
+     }
+ }
