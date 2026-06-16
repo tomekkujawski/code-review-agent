@@ -1,0 +1,54 @@
+diff --git a/src/Entity/User.php b/src/Entity/User.php
+index c4d5e6f..a7b8c9d 100644
+--- a/src/Entity/User.php
++++ b/src/Entity/User.php
+@@ -3,6 +3,7 @@ namespace App\Entity;
+
+ use Doctrine\ORM\Mapping as ORM;
+ use JMS\Serializer\Annotation as Serializer;
++use Symfony\Component\Security\Core\User\UserInterface;
+
+ #[ORM\Entity]
+ #[ORM\Table(name: 'user')]
+@@ -22,6 +23,18 @@ class User implements UserInterface
+     #[Serializer\Groups(['user:read'])]
+     private string $email;
+
++    #[ORM\Column(type: 'string', length: 64, nullable: true)]
++    #[Serializer\Type('string')]
++    private ?string $passwordResetToken = null;
++
++    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
++    #[Serializer\Type('DateTimeImmutable')]
++    private ?\DateTimeImmutable $passwordResetTokenExpiresAt = null;
++
++    #[ORM\Column(type: 'string', length: 20, nullable: true)]
++    #[Serializer\Type('string')]
++    private ?string $internalNote = null;
++
+     public function getEmail(): string
+     {
+         return $this->email;
+@@ -35,4 +48,22 @@ class User implements UserInterface
+     {
+         return $this->id;
+     }
++
++    public function getPasswordResetToken(): ?string
++    {
++        return $this->passwordResetToken;
++    }
++
++    public function setPasswordResetToken(?string $token): void
++    {
++        $this->passwordResetToken = $token;
++        $this->passwordResetTokenExpiresAt = $token !== null
++            ? new \DateTimeImmutable('+1 hour')
++            : null;
++    }
++
++    public function getInternalNote(): ?string
++    {
++        return $this->internalNote;
++    }
+ }

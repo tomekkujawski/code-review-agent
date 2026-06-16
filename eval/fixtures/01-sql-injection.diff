@@ -1,0 +1,33 @@
+diff --git a/src/Repository/OrderRepository.php b/src/Repository/OrderRepository.php
+index 3a1b2c4..9d8e7f6 100644
+--- a/src/Repository/OrderRepository.php
++++ b/src/Repository/OrderRepository.php
+@@ -2,6 +2,7 @@
+ namespace App\Repository;
+
+ use Doctrine\ORM\EntityRepository;
++use Doctrine\DBAL\Connection;
+
+ class OrderRepository extends EntityRepository
+ {
+@@ -12,4 +13,18 @@ class OrderRepository extends EntityRepository
+     public function findActiveByUser(int $userId): array
+     {
+         return $this->findBy(['user' => $userId, 'status' => 'active']);
+     }
++
++    public function findByUserAndStatus(string $userId, string $status): array
++    {
++        /** @var Connection $conn */
++        $conn = $this->getEntityManager()->getConnection();
++
++        $sql = "SELECT * FROM `order`"
++            . " WHERE user_id = " . $userId
++            . " AND status = '" . $status . "'";
++
++        $stmt = $conn->prepare($sql);
++        $stmt->executeStatement();
++
++        return $stmt->fetchAllAssociative();
++    }
+ }

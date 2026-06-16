@@ -1,0 +1,107 @@
+description: Code review agent eval suite — M5L3 regression gate
+
+prompts:
+  - file://review-prompt.yaml
+
+providers:
+  - id: openrouter:anthropic/claude-sonnet-4.6
+    config:
+      response_format:
+        type: json_object
+  - id: openrouter:anthropic/claude-haiku-4.5
+    config:
+      response_format:
+        type: json_object
+  - id: openrouter:openai/gpt-5-mini
+    config:
+      response_format:
+        type: json_object
+
+defaultTest:
+  # llm-rubric używa sonnet-4.6 jako sędzi — ten sam model co domyślny w review.ts
+  options:
+    provider: openrouter:anthropic/claude-sonnet-4.6
+    # Strip markdown fences before assertions — some models wrap JSON in ```json blocks
+    transform: |
+      const match = output.match(/```(?:json)?\s*([\s\S]*?)```/s);
+      return match ? match[1].trim() : output.trim();
+
+tests:
+  - description: "01 · SQL injection via string concatenation in native query"
+    vars:
+      diff: file://fixtures/01-sql-injection.diff
+    assert:
+      - type: is-json
+        metric: format/is-json
+
+      - type: llm-rubric
+        metric: security/sql-injection-detected
+        value: >
+          Werdykt to "fail" i w podsumowaniu (summary) agent identyfikuje
+          SQL injection lub niebezpieczną konkatenację parametrów w zapytaniu SQL
+          jako problem blokujący merge.
+
+      - type: javascript
+        metric: assert/security-score-and-verdict
+        value: |
+          const r = JSON.parse(output);
+          return r.securitySafety <= 3 && r.verdict === 'fail';
+
+  - description: "02 · Missing Symfony Voter / authorization on new controller routes"
+    vars:
+      diff: file://fixtures/02-missing-voter.diff
+    assert:
+      - type: is-json
+        metric: format/is-json
+
+      - type: llm-rubric
+        metric: security/missing-authz-detected
+        value: >
+          Werdykt to "fail" i podsumowanie wskazuje brak autoryzacji, brak Votera,
+          brak #[IsGranted] lub ryzyko IDOR przy jednej lub obu nowych metodach kontrolera.
+
+      - type: javascript
+        metric: assert/security-score-and-verdict
+        value: |
+          const r = JSON.parse(output);
+          return r.securitySafety <= 5 && r.verdict === 'fail';
+
+  - description: "03 · JMS Serializer fields without #[Groups] — data leak risk"
+    vars:
+      diff: file://fixtures/03-jms-groups-leak.diff
+    assert:
+      - type: is-json
+        metric: format/is-json
+
+      - type: llm-rubric
+        metric: security/jms-groups-leak-detected
+        value: >
+          Podsumowanie wskazuje brak adnotacji #[Groups] lub
+          ryzyko wycieku wrażliwych danych (token resetowania hasła, internalNote)
+          przez serializację JMS.
+
+      - type: javascript
+        metric: assert/security-score
+        value: |
+          const r = JSON.parse(output);
+          return r.securitySafety <= 6;
+
+  - description: "04 · Trivial positive control (stock quantity + null-safe show)"
+    vars:
+      diff: file://fixtures/04-trivial-change.diff
+    assert:
+      - type: is-json
+        metric: format/is-json
+
+      - type: llm-rubric
+        metric: quality/positive-control-pass
+        value: >
+          Agent daje werdykt "pass" lub co najmniej nie identyfikuje
+          żadnych problemów bezpieczeństwa blokujących merge.
+          Dopuszczalne są drobne uwagi stylistyczne lub o brakujących testach.
+
+      - type: javascript
+        metric: assert/positive-verdict
+        value: |
+          const r = JSON.parse(output);
+          return r.verdict === 'pass';

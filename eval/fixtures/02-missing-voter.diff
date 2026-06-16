@@ -1,0 +1,36 @@
+diff --git a/src/Controller/OrderController.php b/src/Controller/OrderController.php
+index b2c3d4e..f5a6b7c 100644
+--- a/src/Controller/OrderController.php
++++ b/src/Controller/OrderController.php
+@@ -3,6 +3,7 @@ namespace App\Controller;
+
+ use App\Repository\OrderRepository;
++use App\Entity\Order;
+ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+ use Symfony\Component\HttpFoundation\JsonResponse;
+ use Symfony\Component\Routing\Annotation\Route;
+@@ -18,4 +19,16 @@ class OrderController extends AbstractController
+     public function __construct(private readonly OrderRepository $orderRepository)
+     {
+     }
++
++    #[Route('/api/orders/{id}', name: 'order_show', methods: ['GET'])]
++    public function show(int $id): JsonResponse
++    {
++        $order = $this->orderRepository->find($id)
++            ?? throw $this->createNotFoundException('Order not found.');
++
++        return $this->json($order, context: ['groups' => ['order:read']]);
++    }
++
++    #[Route('/api/orders/{id}', name: 'order_delete', methods: ['DELETE'])]
++    public function delete(int $id): JsonResponse
++    {
++        $order = $this->orderRepository->find($id)
++            ?? throw $this->createNotFoundException('Order not found.');
++
++        $this->orderRepository->remove($order, flush: true);
++
++        return $this->json(null, 204);
++    }
+ }
