@@ -69,3 +69,4 @@ Kolejna lekcja. Plan:
 - [ ] Publikacja `summary` jako komentarz PR (Markdown z `review.json`).
 - [ ] Sekret `OPENROUTER_API_KEY` w GitHub Secrets.
 - [ ] Budżet kosztów: próg alertu na podstawie telemetrii `usage.cost`.
+
