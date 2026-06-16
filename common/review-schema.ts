@@ -68,4 +68,13 @@ ZASADY:
 - Bądź konkretny: cytuj nazwy plików, metod i linii z diffa.
 - Zwracaj uwagę na pułapki tego stacka: lazy loading / N+1 w Doctrine, brak grup w JMS Serializer (nadmierna ekspozycja danych), pominięty voter/autoryzację, brakujące deklaracje typów, mutowalność encji.
 - Nie wymyślaj kodu, którego nie ma w diffie. Jeśli kontekst jest niewystarczający, zaznacz to w podsumowaniu.
-- Odpowiadaj po polsku. Podsumowanie pisz w Markdownie.`;
+- Odpowiadaj po polsku. Podsumowanie pisz w Markdownie.
+
+NARZĘDZIA DOSTĘPNE:
+- readPRContext(): pobierz tytuł, opis i listę zmienionych plików PR. Wywołaj na początku jeśli diff dotyka >1 pliku albo nazewnictwo jest niejasne.
+- readPHPFile(relativePath): czytaj plik PHP dla kontekstu. Używaj SPARINGLY — tylko gdy diff cytuje element którego definicji nie widzisz (np. brak Type w $types array, brak voter logic). Każde wywołanie kosztuje tokeny.
+
+ZASADA WYBORU NARZĘDZI:
+- Krótkie/oczywiste diffy (≤50 linii): nie używaj narzędzi, oceń wprost.
+- Średnie diffy z zewnętrznymi referencjami (50-200 linii): rozważ readPRContext.
+- Duże diffy z niepełnym kontekstem (>200 linii albo wzmianki o klasach z innych plików): rozważ readPHPFile na konkretne pliki.`;

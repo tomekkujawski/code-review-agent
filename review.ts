@@ -1,6 +1,8 @@
-import { ToolLoopAgent, Output, stepCountIs } from 'ai';
+import { ToolLoopAgent, Output, stepCountIs, tool } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { readFileSync, existsSync } from 'node:fs';
 import pc from 'picocolors';
+import { z } from 'zod';
 import {
   REVIEW_SCHEMA,
   SYSTEM_PROMPT,
@@ -92,6 +94,52 @@ function renderTelemetry(usage: any, providerMetadata: any): void {
   }
 }
 
+const readPRContext = tool({
+  description:
+    'Read the pull request context: title, body, and list of changed files. Use this when the diff alone is not enough to understand the intent of the change. Returns null fields if not running in a PR context (e.g., local manual run).',
+  inputSchema: z.object({}),
+  execute: async () => {
+    const title = process.env.PR_TITLE ?? null;
+    const body = process.env.PR_BODY ?? null;
+    const filesRaw = process.env.PR_FILES ?? '';
+    let files: string[] = [];
+    if (filesRaw) {
+      try {
+        files = JSON.parse(filesRaw);
+      } catch {
+        files = filesRaw.split(/[,\n]/).map((f) => f.trim()).filter(Boolean);
+      }
+    }
+    return { title, body, files };
+  },
+});
+
+const readPHPFile = tool({
+  description:
+    "Read a PHP file from the project repository for additional context. Use sparingly — only when the diff references something whose definition or usage you need to verify (e.g., entity property type, voter logic, service injection). Provide path relative to repo root, e.g., 'src/Entity/Order.php'.",
+  inputSchema: z.object({
+    relativePath: z
+      .string()
+      .describe("Path relative to repository root, e.g., 'src/Entity/Order.php'"),
+  }),
+  execute: async ({ relativePath }) => {
+    if (relativePath.includes('..')) {
+      return { error: 'Path traversal not allowed.' };
+    }
+    if (!relativePath.startsWith('src/')) {
+      return { error: "Path must start with 'src/'." };
+    }
+    if (!existsSync(relativePath)) {
+      return { error: `File not found: ${relativePath}` };
+    }
+    const content = readFileSync(relativePath, 'utf8');
+    if (content.length > 50_000) {
+      return { error: 'File too large for context (>50K chars). Read targeted excerpt manually.' };
+    }
+    return { content, lines: content.split('\n').length, size: content.length };
+  },
+});
+
 async function main(): Promise<void> {
   loadDotEnv();
 
@@ -121,8 +169,9 @@ async function main(): Promise<void> {
     model,
     instructions: SYSTEM_PROMPT,
     output: Output.object({ schema: REVIEW_SCHEMA }),
-    // +1 krok ponad właściwą pracę, bo generowanie strukturalnego outputu to osobny step.
-    stopWhen: stepCountIs(2),
+    tools: { readPRContext, readPHPFile },
+    // Więcej kroków: agent może wywołać readPRContext/readPHPFile przed właściwą oceną.
+    stopWhen: stepCountIs(5),
     onStepFinish({ usage, finishReason }) {
       step += 1;
       const inTok = usage?.inputTokens ?? '?';

@@ -32,10 +32,19 @@ jobs:
           git diff "origin/$BASE...HEAD" > /tmp/pr.diff
           echo "Diff: $(wc -l < /tmp/pr.diff) lines, $(wc -c < /tmp/pr.diff) bytes"
 
+      - name: Compute changed files
+        id: changed-files
+        run: |
+          BASE=${GITHUB_BASE_REF:-master}
+          echo "value=$(git diff origin/$BASE...HEAD --name-only | tr '\n' ',')" >> "$GITHUB_OUTPUT"
+
       - name: Run AI review
         id: review
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_FILES: ${{ steps.changed-files.outputs.value }}
         run: |
           set +eo pipefail
           cat /tmp/pr.diff | npx tsx review.ts > /tmp/review.json
