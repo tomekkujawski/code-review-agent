@@ -70,3 +70,6 @@ Kolejna lekcja. Plan:
 - [ ] Sekret `OPENROUTER_API_KEY` w GitHub Secrets.
 - [ ] Budżet kosztów: próg alertu na podstawie telemetrii `usage.cost`.
 
+
+## M5L3 Etap 3
+Extended agent with readPRContext + readPHPFile tools.
