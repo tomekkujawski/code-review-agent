@@ -60,16 +60,31 @@ review.ts                 # główny agent (stdin → recenzja)
 samples/sample-diff.patch # przykładowy diff PHP/Symfony do smoke testu
 ```
 
-## M5L3 TODO — integracja CI/CD
+## M5L3 ✅ DONE — integracja CI/CD
 
-Kolejna lekcja. Plan:
+Wszystkie kroki zrealizowane:
 
-- [ ] GitHub Action: odpalenie agenta na diffie PR (`git diff origin/${{ github.base_ref }}...HEAD`).
-- [ ] Wykorzystanie kodu wyjścia (`fail` → blokada merge / status check).
-- [ ] Publikacja `summary` jako komentarz PR (Markdown z `review.json`).
-- [ ] Sekret `OPENROUTER_API_KEY` w GitHub Secrets.
-- [ ] Budżet kosztów: próg alertu na podstawie telemetrii `usage.cost`.
+- [x] GitHub Action: odpalenie agenta na diffie PR (`git diff origin/${{ github.base_ref }}...HEAD`).
+- [x] Wykorzystanie kodu wyjścia (`fail` → blokada merge / status check).
+- [x] Publikacja `summary` jako komentarz PR (Markdown z `review.json`).
+- [x] Sekret `OPENROUTER_API_KEY` w GitHub Secrets.
+- [x] Budżet kosztów: próg alertu na podstawie telemetrii `usage.cost`.
 
 
-## M5L3 Etap 3
+## M5L3 Etap 3 ✅ DONE
 Extended agent with readPRContext + readPHPFile tools.
+
+## Evidence (10xChampion submission)
+
+Real PR-y demonstrujące działanie agenta:
+
+- **PR #1** (CI smoke test): https://github.com/tomekkujawski/code-review-agent/pull/1
+  - Wzór: agent reviews `.gitignore` + README changes
+  - Result: 5 scores (9, 9, 10, 10, 10), Verdict: PASS
+
+- **PR #2** (Extended agent with tools): https://github.com/tomekkujawski/code-review-agent/pull/2
+  - Wzór: agent uses readPRContext + readPHPFile tools
+  - Result: 5 scores (10×5), Verdict: PASS
+
+Cost per review: ~$0.014 (OpenRouter pricing, claude-sonnet-4.6).
+Execution time: ~23 seconds.
